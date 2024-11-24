@@ -1,10 +1,8 @@
 # SingleInstanceCore
-For single instance applications on .NET Core
+This is an updated fork of [SingleInstanceCore](https://github.com/soheilkd/SingleInstanceCore).
 
-NuGet Package: https://www.nuget.org/packages/SingleInstanceCore/
 # Usage
-
-Note: Usage examples are for WPF and Winforms desktop applications. For other platforms/frameworks, inheritance and initialization should be done accordingly, not exactly like the examples.
+Note: Usage examples are for WPF and WinForms desktop applications. For other platforms/frameworks, inheritance and initialization should be done accordingly, not exactly like the examples.
 
 The class that handles instance invokation should inherit ISingleInstance and implement OnInstanceInvoked method.
 
@@ -43,7 +41,7 @@ E.g. in App class (`App.xaml.cs`):
 	}
 ```
 
-## Winforms
+## WinForms
 Winforms doesn't have an Application.cs that could implement the `ISingleInstance` interface. We have to define one ourselves.
 ```csharp
 static class Program
