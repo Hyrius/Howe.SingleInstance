@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	
+  <PropertyGroup>
+    <TargetFrameworks>net8.0-windows;net9.0-windows</TargetFrameworks>
+    <Authors>soheilkd, Howe</Authors>
+    <PackageProjectUrl>https://github.com/Hyrius/Howe.SingleInstance</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Hyrius/Howe.SingleInstance</RepositoryUrl>
+    <RepositoryType>Github</RepositoryType>
+    <Description>To create single instance applications on .NET 8+</Description>
+    <PackageTags>single instance dotnet</PackageTags>
+    <Version>5.1.0</Version>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="TinyIpc" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>

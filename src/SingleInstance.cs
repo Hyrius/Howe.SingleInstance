@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using TinyIpc.Messaging;
 
 namespace SingleInstanceCore
@@ -13,66 +12,64 @@ namespace SingleInstanceCore
 		//For detecting if mutex is locked (first instance is already up then)
 		private static Mutex singleMutex;
 		//Message bus for communication between instances
-		private static TinyMessageBus messageBus; 
+		private static TinyMessageBus messageBus;
 
-		/// <summary>
-		/// Intended to be on app startup
-		/// Initializes service if the call is from first instance.
-		/// Signals the first instance if it already exists
-		/// </summary>
-		/// <param name="uniqueName">A unique name for IPC channel</param>
-		/// <returns>Whether the call is from application's first instance</returns>
-		public static bool InitializeAsFirstInstance<T>(this T instance, string uniqueName) where T:ISingleInstance
+        /// <summary>
+        /// Intended to be on app startup
+        /// Initializes service if the call is from first instance.
+        /// Signals the first instance if it already exists
+        /// </summary>
+        /// <param name="uniqueName">A unique name for IPC channel</param>
+        /// <returns>Whether the call is from application's first instance</returns>
+        public static bool InitializeAsFirstInstance<T>(this T instance, string uniqueName) where T : ISingleInstance
+        {
+            var applicationIdentifier = $"{uniqueName}{Environment.UserName}";
+            var channelName = $"{applicationIdentifier}{channelNameSufflix}";
+            singleMutex = new Mutex(true, applicationIdentifier, out var firstInstance);
+
+            if (firstInstance)
+            {
+                CreateRemoteService(instance, channelName);
+            }
+            else
+            {
+                SignalFirstInstance(channelName, Environment.GetCommandLineArgs());
+            }
+
+            return firstInstance;
+        }
+
+        public static async ValueTask<bool> InitializeAsFirstInstanceAsync<T>(this T instance, string uniqueName) where T:ISingleInstance
 		{
-			var CommandLineArgs = GetCommandLineArgs(uniqueName);
-			var applicationIdentifier = uniqueName + Environment.UserName;
+			var applicationIdentifier = $"{uniqueName}{Environment.UserName}";
 			var channelName = $"{applicationIdentifier}{channelNameSufflix}";
 			singleMutex = new Mutex(true, applicationIdentifier, out var firstInstance);
 
 			if (firstInstance)
-				CreateRemoteService(instance, channelName);
+			{
+                CreateRemoteService(instance, channelName);
+            }
 			else
-				SignalFirstInstance(channelName, CommandLineArgs);
+			{
+                await SignalFirstInstanceAsync(channelName, Environment.GetCommandLineArgs());
+            }
 
 			return firstInstance;
 		}
 
-		private static void SignalFirstInstance(string channelName, IList<string> commandLineArgs)
+		private static async Task SignalFirstInstanceAsync(string channelName, IList<string> commandLineArgs)
 		{
-			var bus = GetTinyMessageBus(channelName);
-			var serializedArgs = commandLineArgs.Serialize();
-			bus?.PublishAsync(serializedArgs).Wait();
-			WaitTillMessageGetsPublished(bus);
-		}
-
-		private static TinyMessageBus GetTinyMessageBus(string channelName, int tryCount = 50)
-        {
-			int tries = 0;
-			var minMessageAge = TimeSpan.FromSeconds(30);
-			while (tries++ < tryCount)
-			{
-				try
-				{
-					var bus = new TinyMessageBus(channelName, minMessageAge);
-					return bus;
-				}
-				catch (Exception) { }
-			}
-			return default;
+            using TinyMessageBus bus = new(channelName);
+            await bus.PublishAsync(commandLineArgs.Serialize());
         }
 
-		private static void WaitTillMessageGetsPublished(TinyMessageBus bus)
-		{
-			if (bus == null)
-				return;
+        private static void SignalFirstInstance(string channelName, IList<string> commandLineArgs)
+        {
+            using TinyMessageBus bus = new(channelName);
+            bus.PublishAsync(commandLineArgs.Serialize()).GetAwaiter().GetResult();
+        }
 
-			while (bus.MessagesPublished != 1)
-			{
-				Thread.Sleep(10);
-			}
-		}
-
-		private static void CreateRemoteService(ISingleInstance instance, string channelName)
+        private static void CreateRemoteService(ISingleInstance instance, string channelName)
 		{
 			messageBus = new TinyMessageBus(channelName);
 			messageBus.MessageReceived += (_, e) =>
@@ -81,36 +78,14 @@ namespace SingleInstanceCore
 			};
 		}
 
-		private static string[] GetCommandLineArgs(string uniqueApplicationName)
-		{
-			var args = Environment.GetCommandLineArgs();
-			if (args == null)
-			{
-				// Try getting commandline arguments from shared location in case of ClickOnce deployed application  
-				var appFolderPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), uniqueApplicationName);
-				var cmdLinePath = Path.Combine(appFolderPath, "cmdline.txt");
-				if (File.Exists(cmdLinePath))
-				{
-					try
-					{
-						using var reader = new StreamReader(cmdLinePath, Encoding.Unicode);
-						args = NativeMethods.CommandLineToArgvW(reader.ReadToEnd());
-						File.Delete(cmdLinePath);
-					}
-					catch (IOException) { }
-				}
-			}
-			return args ?? Array.Empty<string>();
-		}
-
 		public static void Cleanup()
 		{
-			if (messageBus != null)
+			if (messageBus is not null)
 			{
 				messageBus.Dispose();
 				messageBus = null;
 			}
-			if (singleMutex != null)
+			if (singleMutex is not null)
 			{
 				singleMutex.Close();
 				singleMutex = null;

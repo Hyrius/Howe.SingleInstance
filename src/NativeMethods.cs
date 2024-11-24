@@ -6,18 +6,18 @@ using System.Security;
 namespace SingleInstanceCore
 {
 	[SuppressUnmanagedCodeSecurity]
-	internal static class NativeMethods
+	internal static partial class NativeMethods
 	{
 		/// <summary>
 		/// Delegate declaration that matches WndProc signatures.
 		/// </summary>
 		public delegate IntPtr MessageHandler(WM uMsg, IntPtr wParam, IntPtr lParam, out bool handled);
 
-		[DllImport("shell32.dll", EntryPoint = "CommandLineToArgvW", CharSet = CharSet.Unicode)]
-		private static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string cmdLine, out int numArgs);
+		[LibraryImport("shell32.dll", EntryPoint = "CommandLineToArgvW", StringMarshalling = StringMarshalling.Utf16)]
+		private static partial IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string cmdLine, out int numArgs);
 
-		[DllImport("kernel32.dll", EntryPoint = "LocalFree", SetLastError = true)]
-		private static extern IntPtr LocalFree(IntPtr hMem);
+		[LibraryImport("kernel32.dll", EntryPoint = "LocalFree", SetLastError = true)]
+		private static partial IntPtr LocalFree(IntPtr hMem);
 
 
 		public static string[] CommandLineToArgvW(string cmdLine)
@@ -33,7 +33,7 @@ namespace SingleInstanceCore
 
 				for (var i = 0; i < numArgs; i++)
 				{
-					IntPtr currArg = Marshal.ReadIntPtr(argv, i * Marshal.SizeOf(typeof(IntPtr)));
+					IntPtr currArg = Marshal.ReadIntPtr(argv, i * Marshal.SizeOf<nint>());
 					result[i] = Marshal.PtrToStringUni(currArg);
 				}
 

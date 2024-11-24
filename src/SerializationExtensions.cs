@@ -1,24 +1,24 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
 
 namespace SingleInstanceCore
 {
-	//For inline serializing and deserializing
 	internal static class SerializationExtensions
 	{
-		private static readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions()
+		private static readonly JsonSerializerOptions serializerOptions = new()
 		{
 			PropertyNamingPolicy = null,
 			AllowTrailingCommas = true
 		};
 
-		internal static byte[] Serialize<T>(this T obj)
+		internal static BinaryData Serialize<T>(this T obj)
 		{
-			return JsonSerializer.SerializeToUtf8Bytes(obj, serializerOptions);
+			return BinaryData.FromObjectAsJson(obj);
 		}
 
-		internal static T Deserialize<T>(this byte[] data)
+		internal static T Deserialize<T>(this BinaryData data)
 		{
 			return JsonSerializer.Deserialize<T>(data, serializerOptions);
 		}
-	}
+    }
 }
