@@ -42,7 +42,7 @@ E.g. in App class (`App.xaml.cs`):
 ```
 
 ## WinForms
-Winforms doesn't have an Application.cs that could implement the `ISingleInstance` interface. We have to define one ourselves.
+WinForms doesn't have an Application.cs that could implement the `ISingleInstance` interface. We have to define one ourselves.
 ```csharp
 static class Program
 {
